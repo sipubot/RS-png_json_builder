@@ -52,7 +52,7 @@ fn move_to_rename(files: Vec<fs::DirEntry>, repath: &String) {
     for file in files.iter() {
         let res = fs::copy(file.path().display().to_string(), format!("{}/pic_{}.png",repath,i.to_string())); 
         match res {
-            Ok(v) => println!("copy to Ok!",v),
+            Ok(v) => println!("copy to {} Ok!",v),
             Err(e) => panic!("{:?}",e),
         };
         i += 1;
@@ -116,7 +116,7 @@ pub fn json_parse (_path: &String)  {
             let image_path = &entry.path().display().to_string();
             if image_path.clone().contains("thumb") {
                 let base64 = image_base64::to_base64(&image_path.to_string()); 
-                thumbv.push(base64[22..].to_string().replace("/",""));
+                thumbv.push(base64[22..].to_string());
             }
         }
     };
@@ -141,7 +141,7 @@ pub fn json_parse (_path: &String)  {
                         .filter(|a|a.is_digit(10))
                         .map(|a|a.to_string()).collect::<Vec<String>>()
                         .join("").parse::<usize>().unwrap();
-                    let picfilename = &thumbv[idx][60..90];
+                    let picfilename = &thumbv[idx][60..90].replace("/","");
                     let pic = Pic {
                         data : base64[22..].to_string(),
                     };
