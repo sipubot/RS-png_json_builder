@@ -50,7 +50,7 @@ fn make_result_folder(path: &String) {
 fn move_to_rename(files: Vec<fs::DirEntry>, repath: &String) {
     let mut i = 0;
     for file in files.iter() {
-        match fs::rename(file.path().display().to_string(), format!("{}/pic_{}.png",repath,i.to_string())) {
+        match fs::copy(file.path().display().to_string(), format!("{}/pic_{}.png",repath,i.to_string())) {
             Ok(v) => println!("{:?}Ok!",v),
             Err(e) => println!("{:?}",e),
         };
