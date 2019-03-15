@@ -35,17 +35,27 @@ fn main() {
     let images = load_images(&files);
     //make thumbnail
     let thumbnails = resize_image(images.clone(), 30, 20);
-    //make resize pic
-    let resizeimages = resize_image(images.clone(), 450, 300);
     //save png
     save_pic(thumbnails, &re_path, "thumb_".to_string());
-    save_pic(resizeimages, &re_path, "pic_".to_string());
+    //
+    move_to_rename(files, &re_path);
     //save json
     json_parse(&re_path);
 }
 
 fn make_result_folder(path: &String) {
     fs::create_dir_all(&path).expect("makeFail fail");
+}
+
+fn move_to_rename(files: Vec<fs::DirEntry>, repath: &String) {
+    let mut i = 0;
+    for file in files.iter() {
+        match fs::rename(file.path().display().to_string(), format!("{}/pic_{}.png",repath,i.to_string())) {
+            Ok(v) => println!("{:?}Ok!",v),
+            Err(e) => println!("{:?}",e),
+        };
+        i += 1;
+    }
 }
 
 fn get_image_files (pathstr: &String) -> Vec<fs::DirEntry>{
