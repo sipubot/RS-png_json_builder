@@ -14,13 +14,18 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::error::Error;
 
-#[derive(Serialize, Deserialize)]
-struct ThumbVec {
-    pic : Vec<String>,
+struct Picobj {
+    path : String,
+    thumbstr : String,
+    key : String,
 }
 #[derive(Serialize, Deserialize)]
 struct Pic {
     data : String,
+}
+#[derive(Serialize, Deserialize)]
+struct ThumbVec {
+    pic : Vec<String>,
 }
 
 fn main() {
@@ -29,132 +34,77 @@ fn main() {
     let re_path = format!("{}{}", pathstr[1],"/result");
     //make result folder
     make_result_folder(&re_path);
-    //getimage files
-    let files = get_image_files(&pathstr[1]);
-    //loading image
-    let images = load_images(&files);
-    //make thumbnail
-    let thumbnails = resize_image(images.clone(), 30, 20);
-    //save png
-    save_pic(thumbnails, &re_path, "thumb_".to_string());
-    //
-    move_to_rename(files, &re_path);
-    //save json
-    json_parse(&re_path);
+    
+    //parse thumb
+    let obj: Vec<Picobj> = make_image_obj(&pathstr[1], &re_path);
+    //parse json
+    make_json(&obj, &re_path);
+
 }
 
 fn make_result_folder(path: &String) {
     fs::create_dir_all(&path).expect("makeFail fail");
 }
 
-fn move_to_rename(files: Vec<fs::DirEntry>, repath: &String) {
-    let mut i = 0;
-    for file in files.iter() {
-        let res = fs::copy(file.path().display().to_string(), format!("{}/pic_{}.png",repath,i.to_string())); 
-        match res {
-            Ok(v) => println!("copy to {} Ok!",v),
-            Err(e) => panic!("{:?}",e),
-        };
-        i += 1;
-    }
-}
+fn make_image_obj (pathstr: &String, re_pathstr: &String) -> Vec<Picobj> {
+    let mut re: Vec<Picobj> = vec![];
+    let mut idx = 0;
 
-fn get_image_files (pathstr: &String) -> Vec<fs::DirEntry>{
-    let mut files = vec![];
     let path = Path::new(&pathstr);
-
     for entry in fs::read_dir(path).expect("Not found Directory") {
         let entry = entry.expect("unable get files");
         if entry.path().is_dir()  {
             continue;
         }
         if entry.path().extension().unwrap() == "png" {
+            let _pathpng = entry.path().display().to_string();
+            let _thumb = load_images(&_pathpng);
+            let _key = save_thumb(&_thumb, &re_pathstr, &idx);
+            re.push(
+                Picobj {
+                    path : _pathpng,
+                    thumbstr : _key.1,
+                    key : _key.0,
+                }
+            );
+            idx += 1;
             println!("{:?}",entry.path().display());
-            files.push(entry);
         }
     };
-    files
+    re
 }
 
-pub fn load_images (files: &Vec<fs::DirEntry>) -> Vec<image::DynamicImage> {
-    let mut dis: Vec<image::DynamicImage> = Vec::new();
-    for file in files.iter() {
-        let di = image::open(&file.path()).unwrap();
-        dis.push(di);
+fn load_images (path: &String) -> image::DynamicImage {
+    let di = image::open(&path).unwrap();
+    image::DynamicImage::resize(&di, 30, 20, image::Lanczos3)
+}
+
+fn save_thumb (img: &image::DynamicImage, path: &String, i: &i32) -> (String, String) {
+    let f = format!("{}/thumb_{}.png",&path, i.to_string());
+    img.save(f.clone()).unwrap();
+    let mut base64 = image_base64::to_base64(&f.to_string()); 
+    base64 = base64[22..].to_string();
+    let key = &base64[60..90].replace("/","");
+    return (key.to_string(), base64)
+}
+
+fn make_json (obj : &Vec<Picobj>, re_path: &String) {
+    for o in obj.clone().into_iter() {
+        let cpath = copy_to_rename(&o.path, &re_path, &o.key);
+        let mut base64 = image_base64::to_base64(&cpath.to_string()); 
+        base64 = base64[22..].to_string();
+        let pic = Pic {
+            data : base64.to_string(),
+        };
+        let json_p = serde_json::to_string(&pic).unwrap();
+        savefilef(&format!("{}/{}.json",&re_path,&o.key), &json_p);
     }
-    dis
-}
-
-pub fn resize_image (dy_imgs: Vec<image::DynamicImage>, width: u32, height: u32) -> Vec<image::DynamicImage>  {
-    let mut r_imgs: Vec<image::DynamicImage> = Vec::new();
-    for img in dy_imgs {
-        let r_img = image::DynamicImage::resize(&img, width, height, image::Lanczos3);
-        r_imgs.push(r_img);
-    }
-    r_imgs
-}
-
-pub fn save_pic (images: Vec<image::DynamicImage>, path: &String, name: String) {
-    let mut i = 0;
-    for img in images.iter() {
-        let f = format!("{}/{}{}.{}",&path, &name, i.to_string(), "png");
-        img.save(f).unwrap();
-        i += 1;
-    }
-}
-
-pub fn json_parse (_path: &String)  {
-    let mut thumbv: Vec<String> = Vec::new();
-    let path = Path::new(&_path);
-
-    for entry in fs::read_dir(path.clone()).expect("Not found Directory") {
-        let entry = entry.expect("unable get files");
-        if entry.path().is_dir() {
-            continue;
-        }
-        if entry.path().extension().unwrap() == "png" {
-            let image_path = &entry.path().display().to_string();
-            if image_path.clone().contains("thumb") {
-                let base64 = image_base64::to_base64(&image_path.to_string()); 
-                thumbv.push(base64[22..].to_string());
-            }
-        }
+    //make data.json make
+    let data = ThumbVec {
+        pic : obj.into_iter().map(|a|a.thumbstr.clone()).collect()
     };
-    //save Thumbnail
-    let tv =  ThumbVec {
-        pic: thumbv.clone(),
-    };
-    let json_t = serde_json::to_string(&tv).unwrap();
-    savefilef(&format!("{}/{}.json",_path,"data"), &json_t);
-
-    for entry in fs::read_dir(path.clone()).expect("Not found Directory") {
-        let entry = entry.expect("unable get files");
-        if entry.path().is_dir() || entry.path().extension().unwrap() != "png"{
-            continue;
-        }
-        let image_path = &entry.path().display().to_string();
-        if image_path.clone().contains("pic") {
-            let base64 = image_base64::to_base64(&image_path.to_string()); 
-            match &entry.path().file_name() {
-                Some(file_name) => {
-                    let idx = file_name.to_str().unwrap().chars().into_iter()
-                        .filter(|a|a.is_digit(10))
-                        .map(|a|a.to_string()).collect::<Vec<String>>()
-                        .join("").parse::<usize>().unwrap();
-                    let picfilename = &thumbv[idx][60..90].replace("/","");
-                    let pic = Pic {
-                        data : base64[22..].to_string(),
-                    };
-                    let json_p = serde_json::to_string(&pic).unwrap();
-                    savefilef(&format!("{}/{}.json",_path,picfilename), &json_p);
-                },
-                _ => {
-                    panic!("err");
-                },
-            };
-        }
-    
-    };
+    let json_d = serde_json::to_string(&data).unwrap();
+    savefilef(&format!("{}/data.json",&re_path), &json_d);
 }
 
 fn savefilef (filename:&String, content:&String) {
@@ -169,4 +119,14 @@ fn savefilef (filename:&String, content:&String) {
         Err(e) => panic!("couldn't write to {}: {}", display, e.description()),
         Ok(_) => println!("successfully wrote to {}", display),
     }
+}
+
+fn copy_to_rename(path: &String, repath: &String, key: &String) -> String {
+    let save_path = format!("{}/{}.png",repath,key);
+    let res = fs::copy(path, &save_path); 
+    match res {
+        Ok(v) => println!("copy to {} Ok!",v),
+        Err(e) => println!("{:?}",e),
+    };
+    save_path
 }
