@@ -15,7 +15,7 @@ use std::path::Path;
 
 struct PicObj {
     path : String,
-    thumbstr : String,
+    thumb_str : String,
     key : String,
 }
 #[derive(Serialize, Deserialize)]
@@ -47,10 +47,9 @@ fn make_result_folder(path: &String) {
 
 fn make_image_obj (path_str: &String, result_path: &String) -> Vec<PicObj> {
     let mut re: Vec<PicObj> = vec![];
-    let mut idx = 0;
-
     let path = Path::new(&path_str);
-    for entry in fs::read_dir(path).expect("Not found Directory") {
+
+    for (idx, entry) in fs::read_dir(path).expect("Not found Directory").enumerate() {
         let entry = entry.expect("unable get files");
         if entry.path().is_dir()  {
             continue;
@@ -58,15 +57,14 @@ fn make_image_obj (path_str: &String, result_path: &String) -> Vec<PicObj> {
         if entry.path().extension().unwrap() == "png" {
             let _path_png = entry.path().display().to_string();
             let _thumb = load_images(&_path_png);
-            let _key = save_thumb(&_thumb, &result_path, &idx);
+            let _key = save_thumb(&_thumb, &result_path, idx);
             re.push(
                 PicObj {
                     path : _path_png,
-                    thumbstr : _key.1,
+                    thumb_str : _key.1,
                     key : _key.0,
                 }
             );
-            idx += 1;
             println!("{:?}",entry.path().display());
         }
     };
@@ -78,7 +76,7 @@ fn load_images (path: &String) -> image::DynamicImage {
     image::DynamicImage::resize(&di, 30, 20, image::imageops::FilterType::Lanczos3)
 }
 
-fn save_thumb (img: &image::DynamicImage, path: &String, i: &i32) -> (String, String) {
+fn save_thumb (img: &image::DynamicImage, path: &String, i: usize) -> (String, String) {
     let f = format!("{}/thumb_{}.png",&path, i.to_string());
     img.save(f.clone()).unwrap();
 
@@ -99,17 +97,17 @@ fn make_json (obj : &Vec<PicObj>, result_path: &String) {
             data : base64.to_string(),
         };
         let json_p = serde_json::to_string(&pic).unwrap();
-        savefilef(&format!("{}/{}.json",&result_path,&o.key), &json_p);
+        save_file(&format!("{}/{}.json",&result_path,&o.key), &json_p);
     }
     //make data.json make
     let data = ThumbVec {
-        pic : obj.into_iter().map(|a|a.thumbstr.clone()).collect()
+        pic : obj.into_iter().map(|a|a.thumb_str.clone()).collect()
     };
     let json_d = serde_json::to_string(&data).unwrap();
-    savefilef(&format!("{}/data.json",&result_path), &json_d);
+    save_file(&format!("{}/data.json",&result_path), &json_d);
 }
 
-fn savefilef (filename:&String, content:&String) {
+fn save_file (filename:&String, content:&String) {
     let path = Path::new(&filename);
     let display = path.display();
     let strings = &content;
