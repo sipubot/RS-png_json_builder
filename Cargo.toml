@@ -1,5 +1,5 @@
 [package]
-name = "RS-json_build"
+name = "image_json_build"
 version = "0.1.0"
 authors = ["SIPU <ddasik00@naver.com>"]
 edition = "2018"
