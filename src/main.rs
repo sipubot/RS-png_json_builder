@@ -13,7 +13,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-struct Picobj {
+struct PicObj {
     path : String,
     thumbstr : String,
     key : String,
@@ -29,15 +29,15 @@ struct ThumbVec {
 
 fn main() {
     //get argument from cgi
-    let pathstr: Vec<String> = env::args().collect();
-    let re_path = format!("{}{}", pathstr[1],"/result");
+    let path_str: Vec<String> = env::args().collect();
+    let result_path = format!("{}{}", path_str[1],"/result");
     //make result folder
-    make_result_folder(&re_path);
+    make_result_folder(&result_path);
     
     //parse thumb
-    let obj: Vec<Picobj> = make_image_obj(&pathstr[1], &re_path);
+    let obj: Vec<PicObj> = make_image_obj(&path_str[1], &result_path);
     //parse json
-    make_json(&obj, &re_path);
+    make_json(&obj, &result_path);
 
 }
 
@@ -45,23 +45,23 @@ fn make_result_folder(path: &String) {
     fs::create_dir_all(&path).expect("makeFail fail");
 }
 
-fn make_image_obj (pathstr: &String, re_pathstr: &String) -> Vec<Picobj> {
-    let mut re: Vec<Picobj> = vec![];
+fn make_image_obj (path_str: &String, result_path: &String) -> Vec<PicObj> {
+    let mut re: Vec<PicObj> = vec![];
     let mut idx = 0;
 
-    let path = Path::new(&pathstr);
+    let path = Path::new(&path_str);
     for entry in fs::read_dir(path).expect("Not found Directory") {
         let entry = entry.expect("unable get files");
         if entry.path().is_dir()  {
             continue;
         }
         if entry.path().extension().unwrap() == "png" {
-            let _pathpng = entry.path().display().to_string();
-            let _thumb = load_images(&_pathpng);
-            let _key = save_thumb(&_thumb, &re_pathstr, &idx);
+            let _path_png = entry.path().display().to_string();
+            let _thumb = load_images(&_path_png);
+            let _key = save_thumb(&_thumb, &result_path, &idx);
             re.push(
-                Picobj {
-                    path : _pathpng,
+                PicObj {
+                    path : _path_png,
                     thumbstr : _key.1,
                     key : _key.0,
                 }
@@ -83,32 +83,30 @@ fn save_thumb (img: &image::DynamicImage, path: &String, i: &i32) -> (String, St
     img.save(f.clone()).unwrap();
 
     let buf = img.as_bytes().to_vec();
-    let mut base64 = base64::encode(&buf); 
-    base64 = base64[22..].to_string();
+    let base64 = base64::encode(&buf)[22..].to_string(); 
     let key = &base64[60..90].replace("/","");
     return (key.to_string(), base64)
 }
 
-fn make_json (obj : &Vec<Picobj>, re_path: &String) {
+fn make_json (obj : &Vec<PicObj>, result_path: &String) {
     for o in obj.clone().into_iter() {
-        let cpath = copy_to_rename(&o.path, &re_path, &o.key);
+        let cpath = copy_to_rename(&o.path, &result_path, &o.key);
 
         let img = image::open(&cpath).unwrap();
         let buf = img.as_bytes().to_vec();
-        let mut base64 = base64::encode(&buf); 
-        base64 = base64[22..].to_string();
+        let base64 = base64::encode(&buf)[22..].to_string(); 
         let pic = Pic {
             data : base64.to_string(),
         };
         let json_p = serde_json::to_string(&pic).unwrap();
-        savefilef(&format!("{}/{}.json",&re_path,&o.key), &json_p);
+        savefilef(&format!("{}/{}.json",&result_path,&o.key), &json_p);
     }
     //make data.json make
     let data = ThumbVec {
         pic : obj.into_iter().map(|a|a.thumbstr.clone()).collect()
     };
     let json_d = serde_json::to_string(&data).unwrap();
-    savefilef(&format!("{}/data.json",&re_path), &json_d);
+    savefilef(&format!("{}/data.json",&result_path), &json_d);
 }
 
 fn savefilef (filename:&String, content:&String) {
@@ -125,8 +123,8 @@ fn savefilef (filename:&String, content:&String) {
     }
 }
 
-fn copy_to_rename(path: &String, repath: &String, key: &String) -> String {
-    let save_path = format!("{}/{}.png",repath,key);
+fn copy_to_rename(path: &String, re_path: &String, key: &String) -> String {
+    let save_path = format!("{}/{}.png",re_path,key);
     let res = fs::copy(path, &save_path); 
     match res {
         Ok(v) => println!("copy to {} Ok!",v),
