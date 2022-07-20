@@ -1,7 +1,7 @@
 extern crate image;
 extern crate lodepng;
 extern crate rgb;
-extern crate image_base64;
+extern crate base64;
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
@@ -81,7 +81,9 @@ fn load_images (path: &String) -> image::DynamicImage {
 fn save_thumb (img: &image::DynamicImage, path: &String, i: &i32) -> (String, String) {
     let f = format!("{}/thumb_{}.png",&path, i.to_string());
     img.save(f.clone()).unwrap();
-    let mut base64 = image_base64::to_base64(&f.to_string()); 
+
+    let buf = img.as_bytes().to_vec();
+    let mut base64 = base64::encode(&buf); 
     base64 = base64[22..].to_string();
     let key = &base64[60..90].replace("/","");
     return (key.to_string(), base64)
@@ -90,7 +92,10 @@ fn save_thumb (img: &image::DynamicImage, path: &String, i: &i32) -> (String, St
 fn make_json (obj : &Vec<Picobj>, re_path: &String) {
     for o in obj.clone().into_iter() {
         let cpath = copy_to_rename(&o.path, &re_path, &o.key);
-        let mut base64 = image_base64::to_base64(&cpath.to_string()); 
+
+        let img = image::open(&cpath).unwrap();
+        let buf = img.as_bytes().to_vec();
+        let mut base64 = base64::encode(&buf); 
         base64 = base64[22..].to_string();
         let pic = Pic {
             data : base64.to_string(),
