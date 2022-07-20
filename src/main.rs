@@ -12,7 +12,6 @@ use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use std::error::Error;
 
 struct Picobj {
     path : String,
@@ -76,7 +75,7 @@ fn make_image_obj (pathstr: &String, re_pathstr: &String) -> Vec<Picobj> {
 
 fn load_images (path: &String) -> image::DynamicImage {
     let di = image::open(&path).unwrap();
-    image::DynamicImage::resize(&di, 30, 20, image::Lanczos3)
+    image::DynamicImage::resize(&di, 30, 20, image::imageops::FilterType::Lanczos3)
 }
 
 fn save_thumb (img: &image::DynamicImage, path: &String, i: &i32) -> (String, String) {
@@ -112,11 +111,11 @@ fn savefilef (filename:&String, content:&String) {
     let display = path.display();
     let strings = &content;
     let mut file = match File::create(&path) {
-        Err(e) => panic!("couldn't create {}:{}", display, e.description()),
+        Err(e) => panic!("couldn't create {}:{}", display, e),
         Ok(file) => file,
     };
     match file.write_all(strings.as_bytes()) {
-        Err(e) => panic!("couldn't write to {}: {}", display, e.description()),
+        Err(e) => panic!("couldn't write to {}: {}", display, e),
         Ok(_) => println!("successfully wrote to {}", display),
     }
 }
