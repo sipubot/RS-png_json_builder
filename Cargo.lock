@@ -50,6 +50,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base64"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
+
+[[package]]
 name = "bit_field"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -356,7 +362,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ebeec3f3b7e9bc25e92efad331332cb5c9a386d91c4163bbe94a7cac3edce52"
 dependencies = [
- "base64",
+ "base64 0.4.2",
  "image 0.12.4",
  "regex",
  "rust-crypto",
@@ -367,6 +373,7 @@ dependencies = [
 name = "image_json_build"
 version = "0.1.0"
 dependencies = [
+ "base64 0.13.0",
  "image 0.24.3",
  "image-base64",
  "lodepng",
