@@ -1,7 +1,7 @@
 extern crate image;
 extern crate lodepng;
 extern crate rgb;
-extern crate base64;
+use base64::{engine::general_purpose, Engine as _};
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
@@ -81,7 +81,7 @@ fn save_thumb (img: &image::DynamicImage, path: &String, i: usize) -> (String, S
     img.save(f.clone()).unwrap();
 
     let buf = img.as_bytes().to_vec();
-    let base64 = base64::encode(&buf)[22..].to_string(); 
+    let base64 = general_purpose::STANDARD.encode(&buf)[22..].to_string(); 
     let key = &base64[60..90].replace("/","");
     return (key.to_string(), base64)
 }
@@ -92,7 +92,7 @@ fn make_json (obj : &Vec<PicObj>, result_path: &String) {
 
         let img = image::open(&cpath).unwrap();
         let buf = img.as_bytes().to_vec();
-        let base64 = base64::encode(&buf)[22..].to_string(); 
+        let base64 = general_purpose::STANDARD.encode(&buf)[22..].to_string(); 
         let pic = Pic {
             data : base64.to_string(),
         };
