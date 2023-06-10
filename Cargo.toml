@@ -5,11 +5,11 @@ authors = ["SIPU <ddasik00@naver.com>"]
 edition = "2018"
 
 [dependencies]
-image = "0.24.5"
+image = "0.24.6"
 lodepng = "3.7.2"
-rgb = "0.8.35"
-serde_json = "1.0.93"
-serde_derive = "1.0.152"
-serde = "1.0.152"
-base64 = "0.21.0"
+rgb = "0.8.36"
+serde_json = "1.0.96"
+serde_derive = "1.0.164"
+serde = "1.0.164"
+base64 = "0.21.2"
 
